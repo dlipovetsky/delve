@@ -786,6 +786,18 @@ func TestConfig(t *testing.T) {
 		t.Fatalf("unexpected SubstitutePathRules after delete %v", term.conf.SubstitutePath)
 	}
 
+	{
+		err := configureCmd(&term, callContext{}, "debug-info-directories [/foo,/bar]")
+		if err != nil {
+			t.Fatalf("error executing configureCmd(debug-info-directories [/foo,/bar]): %v", err)
+		}
+		want := []string{"/foo", "/bar"}
+		got := term.conf.DebugInfoDirectories
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("mismatch after command\nexpected: %#v\ngot: %#v", want, got)
+		}
+	}
+
 	err = configureCmd(&term, callContext{}, "alias print blah")
 	if err != nil {
 		t.Fatalf("error executing configureCmd(alias print blah): %v", err)
