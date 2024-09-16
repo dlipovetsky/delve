@@ -767,13 +767,13 @@ func (s *Session) handleRequest(request dap.Message) {
 		s.onExceptionInfoRequest(request)
 	case *dap.DisassembleRequest: // Optional (capability 'supportsDisassembleRequest')
 		s.onDisassembleRequest(request)
-	//--- Requests that we may want to support ---
+	case *dap.LoadedSourcesRequest: // Optional (capability 'supportsLoadedSourcesRequest')
+		s.onLoadedSourcesRequest(request)
+		//--- Requests that we may want to support ---
 	case *dap.SourceRequest: // Required
 		/*TODO*/ s.sendUnsupportedErrorResponse(request.Request) // https://github.com/go-delve/delve/issues/2851
 	case *dap.SetExpressionRequest: // Optional (capability 'supportsSetExpression')
 		/*TODO*/ s.onSetExpressionRequest(request) // Not yet implemented
-	case *dap.LoadedSourcesRequest: // Optional (capability 'supportsLoadedSourcesRequest')
-		/*TODO*/ s.onLoadedSourcesRequest(request) // Not yet implemented
 	case *dap.ReadMemoryRequest: // Optional (capability 'supportsReadMemoryRequest')
 		/*TODO*/ s.onReadMemoryRequest(request) // Not yet implemented
 	case *dap.CancelRequest: // Optional (capability 'supportsCancelRequest')
@@ -864,6 +864,7 @@ func (s *Session) onInitializeRequest(request *dap.InitializeRequest) {
 	response.Body.SupportsSteppingGranularity = true
 	response.Body.SupportsLogPoints = true
 	response.Body.SupportsDisassembleRequest = true
+	response.Body.SupportsLoadedSourcesRequest = true
 	// To be enabled by CapabilitiesEvent based on launch configuration
 	response.Body.SupportsStepBack = false
 	response.Body.SupportTerminateDebuggee = false
@@ -871,7 +872,6 @@ func (s *Session) onInitializeRequest(request *dap.InitializeRequest) {
 	response.Body.SupportsTerminateRequest = false
 	response.Body.SupportsRestartRequest = false
 	response.Body.SupportsSetExpression = false
-	response.Body.SupportsLoadedSourcesRequest = false
 	response.Body.SupportsReadMemoryRequest = false
 	response.Body.SupportsCancelRequest = false
 	s.send(response)
@@ -3141,10 +3141,18 @@ func (s *Session) onSetExpressionRequest(request *dap.SetExpressionRequest) {
 	s.sendNotYetImplementedErrorResponse(request.Request)
 }
 
-// onLoadedSourcesRequest sends a not-yet-implemented error response.
-// Capability 'supportsLoadedSourcesRequest' is not set 'initialize' response.
+// onLoadedSourcesRequest handles 'loadedSources' requests.
+// Capability 'supportsLoadedSourcesRequest' is set in 'initialize' response.
 func (s *Session) onLoadedSourcesRequest(request *dap.LoadedSourcesRequest) {
-	s.sendNotYetImplementedErrorResponse(request.Request)
+	paths, err := s.debugger.Sources("") // Return all sources.
+	if err != nil {
+		s.sendErrorResponse(request.Request, UnableToListSources, "Unable to list sources", err.Error())
+	}
+	response := &dap.LoadedSourcesResponse{Response: *newResponse(request.Request)}
+	for _, path := range paths {
+		response.Body.Sources = append(response.Body.Sources, dap.Source{Path: path})
+	}
+	s.send(response)
 }
 
 // onReadMemoryRequest sends a not-yet-implemented error response.

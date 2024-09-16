@@ -6409,9 +6409,6 @@ func TestOptionalNotYetImplementedResponses(t *testing.T) {
 		client.SetExpressionRequest()
 		expectNotYetImplemented("setExpression")
 
-		client.LoadedSourcesRequest()
-		expectNotYetImplemented("loadedSources")
-
 		client.ReadMemoryRequest()
 		expectNotYetImplemented("readMemory")
 
